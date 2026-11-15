@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+chromadb
+requests
+sqlalchemy
+pyjwt
+bcrypt
+python-multipart
