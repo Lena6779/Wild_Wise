@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 import chromadb
+import requests
 
 from config import settings
 
@@ -104,7 +105,7 @@ def search(question: str, animal_class: str | None = None) -> list[dict]:
             results["documents"][0],
             results["distances"][0],
             results["metadatas"][0],
-            strict=True, # Ensure that the lengths of documents, distances, and metadatas match exactly
+            strict=True,  # Ensure that the lengths of documents, distances, and metadatas match exactly
         )
     ]
 
@@ -121,3 +122,33 @@ def get_confidence(results: list[dict]) -> str:
     if best <= settings.LOW_CONFIDENCE_THRESHOLD:
         return "low"
     return "none"
+
+
+def ask_ollama(question: str, results: list[dict]) -> str:
+    """Ask the Ollama model to answer the question using only the matching chunks."""
+    context = "\n\n".join(result["text"] for result in results)
+
+    prompt = (
+        "You are Wild Wise, a friendly app companion who teaches people of all ages "
+        "about wild animals. Use the facts below to answer the question in plain "
+        "English. Answer directly, as if you already know these facts. "
+        "Only include details that are in the facts. "
+        "Keep it short and simple. "
+        "If the facts are about a different topic, say you don't know.\n\n"
+        f"Facts:\n{context}\n\n"
+        f"Question: {question}\n"
+        "Answer:"
+    )
+
+    response = requests.post(
+        f"{settings.OLLAMA_URL}/api/generate",
+        json={
+            "model": settings.MODEL_NAME,
+            "prompt": prompt,
+            "stream": False,
+        },
+        # Stop waiting after 2 minutes, since the model can take a while to respond
+        timeout=120,
+    )
+    response.raise_for_status()
+    return response.json()["response"].strip()
