@@ -85,3 +85,39 @@ def ingest_docs() -> list[dict]:
             ],
         )
     return fact_sheets
+
+
+def search(question: str, animal_class: str | None = None) -> list[dict]:
+    """Find the chunks closest in meaning to the question."""
+    collection = get_collection()
+    # Only search one animal class if the user picked one
+    where = {"animal_class": animal_class} if animal_class else None
+    results = collection.query(
+        query_texts=[question],
+        n_results=settings.MAX_RESULTS,
+        where=where,
+    )
+    # Chroma returns one list per question, and we sent one, so use index 0
+    return [
+        {"text": text, "distance": distance, **metadata}
+        for text, distance, metadata in zip(
+            results["documents"][0],
+            results["distances"][0],
+            results["metadatas"][0],
+            strict=True, # Ensure that the lengths of documents, distances, and metadatas match exactly
+        )
+    ]
+
+
+def get_confidence(results: list[dict]) -> str:
+    """Estimate confidence from the closest chunk's cosine similarity."""
+    if not results:
+        return "none"
+    best = results[0]["distance"]
+    if best <= settings.HIGH_CONFIDENCE_THRESHOLD:
+        return "high"
+    if best <= settings.MEDIUM_CONFIDENCE_THRESHOLD:
+        return "medium"
+    if best <= settings.LOW_CONFIDENCE_THRESHOLD:
+        return "low"
+    return "none"

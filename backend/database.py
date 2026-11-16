@@ -1,9 +1,10 @@
 """Database setup: the SQLAlchemy engine, sessions, and table creation"""
 
-from config import settings
-from models import Base
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
+
+from config import settings
+from models import Base
 
 engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False}) # Allow SQLite connections from multiple threads
 
@@ -35,3 +36,4 @@ def get_db():
         raise # Re-raise the exception
     finally:
         db.close()
+
