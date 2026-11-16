@@ -19,6 +19,7 @@ from models import Base  # noqa: E402
 @pytest.fixture
 def client():
     """A test client with fresh, empty tables for each test."""
+    # Start every test with empty tables
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:
