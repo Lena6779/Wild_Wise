@@ -124,3 +124,4 @@ class IngestResponse(BaseModel):
     files: list[str]
     chunks: int
     message: str
+
