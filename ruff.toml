@@ -1,0 +1,8 @@
+line-length = 88
+src = ["backend"]
+[lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"] # Long line rule
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
