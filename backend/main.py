@@ -7,12 +7,12 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from auth import create_access_token, hash_password, verify_password
+from auth import create_access_token, get_current_user, hash_password, verify_password
 from config import settings
 from database import get_db, init_db
-from models import User
-from rag import get_collection
-from schemas import HealthResponse, RootResponse, Token, UserCreate, UserOut
+from models import User, Animal
+from rag import get_collection, ingest_docs
+from schemas import HealthResponse, IngestResponse, RootResponse, Token, UserCreate, UserOut
 
 
 @asynccontextmanager
@@ -81,3 +81,23 @@ def login(
         )
 
     return Token(access_token=create_access_token(user.username))
+
+@app.post("/ingest", response_model=IngestResponse)
+def ingest(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Load the fact sheets into ChromaDB and save each animal to the database."""
+    fact_sheets = ingest_docs()
+    for sheet in fact_sheets:
+        animal = db.query(Animal).filter(Animal.name == sheet["animal"]).first()
+        if not animal:
+            animal = Animal(name=sheet["animal"])
+            db.add(animal)
+        animal.animal_class = sheet["animal_class"]
+        animal.file_name = sheet["file_name"]
+        animal.source_url = sheet["source_url"]
+    return IngestResponse(
+        files=[sheet["file_name"] for sheet in fact_sheets],
+        chunks=get_collection().count(),
+        message=f"Loaded {len(fact_sheets)} fact sheets into ChromaDB and saved to the database.",
+    )
+    
+        
