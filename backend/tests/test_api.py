@@ -69,3 +69,38 @@ def test_ask_off_topic_skips_model(client, auth_headers, monkeypatch):
     assert response.status_code == 200
     assert response.json()["confidence"] == "none"
     assert response.json()["sources"] == []
+
+def test_find_animal_class_earthworm():
+    """'A worm, not an insect' is labeled worm."""
+    assert find_animal_class("The earthworm is a worm, not an insect.") == "worm"
+
+def test_ask_saves_conversation(client, auth_headers, monkeypatch):
+    """A good match gets an answer, and it shows up in the user's history."""
+    monkeypatch.setattr(main, "search", lambda question, animal_class=None: [ALLIGATOR_RESULT])
+    monkeypatch.setattr(main, "ask_ollama", lambda question, results: "Alligators eat fish.")
+
+    response = client.post(
+        "/ask", json={"question": "What do alligators eat?"}, headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["confidence"] == "high"
+    assert response.json()["answer"] == "Alligators eat fish."
+
+    history = client.get("/conversations", headers=auth_headers).json()
+    assert len(history) == 1
+    assert history[0]["question"] == "What do alligators eat?"
+
+def test_cannot_delete_other_users_conversation(client, auth_headers, monkeypatch):
+    """Another user gets 404 when trying to delete someone else's conversation."""
+    monkeypatch.setattr(main, "search", lambda question, animal_class=None: [ALLIGATOR_RESULT])
+    monkeypatch.setattr(main, "ask_ollama", lambda question, results: "Alligators eat fish.")
+    client.post("/ask", json={"question": "What do alligators eat?"}, headers=auth_headers)
+    conversation_id = client.get("/conversations", headers=auth_headers).json()[0]["id"]
+
+    other = {"username": "other", "password": "otherpassword"}
+    client.post("/auth/register", json=other)
+    token = client.post("/auth/token", data=other).json()["access_token"]
+    other_headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.delete(f"/conversations/{conversation_id}", headers=other_headers)
+    assert response.status_code == 404
