@@ -126,7 +126,7 @@ def show_chat():
                         unique = {s["animal"]: s["source_url"] for s in message["sources"]}
                         for animal, url in unique.items():
                             st.markdown(f"- **{animal}**: {url}")
-                          
+
 
     question = st.chat_input("Ask Wild Wise about a wild animal...")
     if question:

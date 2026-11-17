@@ -6,3 +6,7 @@ venv/
 chroma_data/
 .env
 .git/
+*.db
+test_chroma/
+.pytest_cache/
+.ruff_cache/
