@@ -1,4 +1,6 @@
+# Wild Wise: Ollama, the FastAPI backend, and the Streamlit frontend
 services:
+  # The language model: no ports, since only the backend talks to it
   ollama:
     image: ollama/ollama
     volumes:
@@ -6,6 +8,7 @@ services:
 
   backend:
     build: ./backend
+    # Settings and the JWT secret, loaded when the container starts
     env_file:
       - .env
     ports:
@@ -25,6 +28,7 @@ services:
     depends_on:
       - backend
 
+# Saved data that survives each restart: the model, chunks, and the database
 volumes:
   ollama_data:
   chroma_data:
