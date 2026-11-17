@@ -10,7 +10,7 @@ API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="Wild Wise Education Chatbot", page_icon="🦉")
 st.title("🦉 Wild Wise")
-st.caption("Ask me about wild animals!")
+st.caption("Curious about wild animals? Ask me what they eat, where they live, how they're born, or if they hibernate!")
 
 # Remember the login and chat between reruns
 if "token" not in st.session_state:
@@ -122,10 +122,11 @@ def show_chat():
                 st.caption(f"Confidence: {message['confidence']}")
                 if message["sources"]:
                     with st.expander("Sources"):
-                        for source in message["sources"]:
-                            st.markdown(
-                                f"- **{source['animal']}**: {source['source_url']}"
-                            )
+                        # One line per animal, even if several chunks come from it
+                        unique = {s["animal"]: s["source_url"] for s in message["sources"]}
+                        for animal, url in unique.items():
+                            st.markdown(f"- **{animal}**: {url}")
+                          
 
     question = st.chat_input("Ask Wild Wise about a wild animal...")
     if question:
