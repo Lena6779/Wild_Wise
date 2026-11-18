@@ -97,6 +97,7 @@ def test_ask_off_topic_skips_model(client, auth_headers, monkeypatch):
 
     # A fake model that fails the test if it's ever called
     def model_should_not_run(question, results):
+        """Fail the test if the model is called."""
         raise AssertionError("The model should not be called")
 
     monkeypatch.setattr(main, "ask_ollama", model_should_not_run)
