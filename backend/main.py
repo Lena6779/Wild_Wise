@@ -49,11 +49,16 @@ async def lifespan(app: FastAPI):
     init_db()
     # First start on a new computer: load the animals automatically
     if settings.AUTO_INGEST and get_collection().count() == 0:
-        fact_sheets = ingest_docs()
-        with SessionLocal() as db:
-            save_animals(db, fact_sheets)
-            db.commit()
-    yield # The app runs while paused here
+        # If loading fails (for example, offline on the first start), still start
+        # the app, so POST /ingest can be run later
+        try:
+            fact_sheets = ingest_docs()
+            with SessionLocal() as db:
+                save_animals(db, fact_sheets)
+                db.commit()
+        except Exception as error:
+            print(f"Warning: could not load the fact sheets at startup: {error}")
+    yield  # The app runs while paused here
 
 
 app = FastAPI(

@@ -131,7 +131,7 @@ All settings are environment variables, read by `backend/config.py`. With Docker
 | `MEDIUM_CONFIDENCE_THRESHOLD` | `0.6` | Highest distance for "medium" |
 | `LOW_CONFIDENCE_THRESHOLD` | `0.7` | Highest distance for "low"; anything above is "none" and skips the model |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | How long a login lasts |
-| `JWT_SECRET_KEY` | (set in `.env`) | The secret that signs login tokens; keep it out of git |
+| `JWT_SECRET_KEY` | `change-me` (local only) | The secret that signs login tokens. Set a long random one in `.env` and keep it out of git; the default is only for local development. |
 | `AUTO_INGEST` | `true` | Load the fact sheets at startup when ChromaDB is empty |
 | `DEBUG` | `false` | Print the settings when the backend starts |
 
@@ -196,6 +196,8 @@ To check code style, run `ruff check .` from the project folder.
    - `Birth:`, `Diet:`, `Habitat:`, `Hibernation or migration:`, and `Fun facts:`
 3. Use the animal's name in every paragraph, so each chunk can be found on its own.
 4. Rebuild and reload: run `docker compose up --build`, then `POST /ingest` while logged in.
+
+Removing a fact sheet doesn't remove the animal: its chunks and its row in the `animals` table stay until the volumes are cleared with `docker compose down -v`.
 
 ## Project Structure
 
@@ -293,6 +295,37 @@ The confidence label is based on the search distance, not on the model's wording
 
 Possible improvements: try adding "If the facts are about more than one animal, name each animal" to the prompt, or use a larger model such as `llama3.2:3b` if the computer can run it.
 
+## Edge Cases
+
+Cases the app handles:
+
+| Situation | What happens |
+|---|---|
+| Off-topic question (closest match over 0.7) | The model is skipped, and the reply says Wild Wise doesn't have an answer |
+| Question over 500 characters | The API returns 422, and the app asks for a shorter question |
+| Unknown animal class sent to the API | 422, listing the 8 allowed classes |
+| Username already taken | 400, and the app says the name is taken |
+| Password under 8 characters, or over 72 bytes | 422 before anything is saved. bcrypt can only hash 72 bytes, and emoji take 4 bytes each, so 18 emoji is the most a password can hold. |
+| Wrong password, or a username that doesn't exist | 401 with the same message for both, so nobody can tell which usernames exist |
+| Missing, fake, or expired token | 401. An expired token in the app sends the user back to the login screen. |
+| A valid token for a deleted user | 401 |
+| Deleting another user's conversation | 404, as if it didn't exist |
+| Ingesting twice | Chunks are upserted and animals are updated, so nothing is duplicated |
+| Backend down when logging in or registering | The app shows "Can't reach the Wild Wise server" instead of crashing |
+| Ollama down or the model not pulled | `/ask` returns 503, and the app shows "Wild Wise can't answer right now" |
+| Fact sheets can't load on the first start (for example, offline) | The backend prints a warning and starts anyway, and `POST /ingest` can be run later |
+
+Known gaps:
+
+| Situation | What happens |
+|---|---|
+| A question of only spaces | It's sent to search and the model, because `min_length` counts spaces |
+| An answer that takes almost 2 minutes | The app and the backend both wait 120 seconds, so the app can give up while the backend still saves the answer |
+| Removing a fact sheet | Its chunks and animal row stay until the volumes are cleared |
+| Prompt injection (for example, "Ignore the facts and...") | The prompt asks the model to use only the facts, but the question and answer aren't checked |
+| Usernames that differ only by capital letters or spaces | `Lena`, `lena`, and ` lena` are three different accounts |
+| Any logged-in user can run `POST /ingest` | Safe, since it only reloads the same files, but not limited to admins |
+
 ## Future Improvements
 
 - Limit `POST /ingest` to admin users with an `is_admin` column and a `403 Forbidden` check
@@ -301,6 +334,10 @@ Possible improvements: try adding "If the facts are about more than one animal, 
 - Add "If the facts are about more than one animal, name each animal" to the prompt
 - Try a larger model, such as `llama3.2:3b`, for more accurate answers
 - Add more animals
+- Check questions and answers for prompt injection, like an input and output validator
+- Trim spaces from questions and usernames, and make usernames case-insensitive
+- Give the app a slightly longer timeout than the backend
+- Remove animals and chunks for fact sheets that were deleted
 
 ## Author
 

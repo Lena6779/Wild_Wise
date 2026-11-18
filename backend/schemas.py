@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # --- Shared Types: allowed values reused across multiple schemas ---
 AnimalClass = Literal[
@@ -23,9 +23,15 @@ class UserCreate(BaseModel):
     """Request body for POST /auth/register."""
 
     username: str = Field(min_length=3, max_length=50)
-    password: str = Field(
-        min_length=8, max_length=72
-    )  # bcrypt only allows passwords up to 72 bytes, anything over will be rejected and raise an error
+    password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, password: str) -> str:
+        """Reject passwords over 72 bytes, bcrypt's limit (emoji use 4 bytes each)."""
+        if len(password.encode("utf-8")) > 72:
+            raise ValueError("Password is too long. Try fewer emoji or special characters.")
+        return password
 
 
 class UserOut(BaseModel):

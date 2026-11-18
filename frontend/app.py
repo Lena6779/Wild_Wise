@@ -61,14 +61,18 @@ def show_login():
             new_username = st.text_input("Create a username")
             new_password = st.text_input("Create a password", type="password")
             if st.form_submit_button("Create an account"):
-                response = requests.post(
-                    f"{API_URL}/auth/register",
-                    json={"username": new_username, "password": new_password},
-                    timeout=10,
-                )
+                try:
+                    response = requests.post(
+                        f"{API_URL}/auth/register",
+                        json={"username": new_username, "password": new_password},
+                        timeout=10,
+                    )
+                except requests.ConnectionError:
+                    st.error("Can't reach the Wild Wise server. Is the backend running?")
+                    return
                 if response.status_code == 201:
                     log_in(new_username, new_password)
-                # 400 code = name take; anything else = too short OR too long (442 code)
+                # 400 = name taken; anything else = too short or too long (422)
                 elif response.status_code == 400:
                     st.error("That username is already taken.")
                 else:
@@ -90,7 +94,7 @@ def ask_wild_wise(question):
             timeout=120,
         )
     except requests.RequestException:
-        # Erros use the same shape a real reply, so the chat can show them
+        # Errors use the same shape as a real reply, so the chat can show them
         return {
             "answer": "Can't reach the Wild Wise server.",
             "confidence": "none",
@@ -101,6 +105,14 @@ def ask_wild_wise(question):
     if response.status_code == 401:
         st.session_state.token = None
         st.rerun()
+
+    # The question failed validation, most likely for being too long
+    if response.status_code == 422:
+        return {
+            "answer": "Questions can be up to 500 characters. Please try a shorter one.",
+            "confidence": "none",
+            "sources": [],
+        }
 
     if response.status_code != 200:
         return {
