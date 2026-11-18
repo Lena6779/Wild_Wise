@@ -1,5 +1,7 @@
 # Wild Wise: An Animal Education Chatbot
 
+![CI](https://github.com/Lena6779/Wild_Wise/actions/workflows/ci.yml/badge.svg)
+
 A containerized full-stack RAG chatbot that answers common questions about wild animals, such as whether an animal is a mammal, gives live birth, hibernates, what it eats, and where it lives.
 
 ## Features
