@@ -22,6 +22,7 @@ class Settings:
     # Application settings
     DEBUG: bool = os.environ.get("DEBUG", "false").lower() == "true"
     DOCS_DIRECTORY: str = os.environ.get("DOCS_DIRECTORY", "./docs")
+    AUTO_INGEST: bool = os.environ.get("AUTO_INGEST", "true").lower() == "true"
 
     # Database config
     DATABASE_URL: str = os.environ.get("DATABASE_URL", "sqlite:///./wildwise.db")

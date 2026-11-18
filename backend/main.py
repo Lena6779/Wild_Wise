@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from auth import create_access_token, get_current_user, hash_password, verify_password
 from config import settings
-from database import get_db, init_db
+from database import SessionLocal, get_db, init_db
 from models import Animal, Conversation, User
 from rag import ask_ollama, get_collection, get_confidence, ingest_docs, search
 from schemas import (
@@ -32,11 +32,28 @@ from schemas import (
 NO_ANSWER = "I'm sorry, I don't have an answer for that. Please try asking a different question."
 
 
+def save_animals(db: Session, fact_sheets: list[dict]) -> None:
+    """Add each animal to the database, or update it if its already there."""
+    for sheet in fact_sheets:
+        animal = db.query(Animal).filter(Animal.name == sheet["animal"]).first()
+        if not animal:
+            animal = Animal(name=sheet["animal"])
+            db.add(animal)
+        animal.animal_class = sheet["animal_class"]
+        animal.file_name = sheet["file_name"]
+        animal.source_url = sheet["source_url"]
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create the database tables when the app starts."""
+    """Create the database tables, and load the fact sheets if ChromaDB is empty."""
     init_db()
-    yield  # This is where the app runs, after this point the app is shutting down
+    # First start on a new computer: load the animals automatically
+    if settings.AUTO_INGEST and get_collection().count() == 0:
+        fact_sheets = ingest_docs()
+        with SessionLocal() as db:
+            save_animals(db, fact_sheets)
+            db.commit()
+    yield # The app runs while paused here
 
 
 app = FastAPI(
@@ -117,15 +134,8 @@ def ingest(
 ):
     """Load the fact sheets into ChromaDB and save each animal to the database."""
     fact_sheets = ingest_docs()
-    for sheet in fact_sheets:
-        # Update the animal if it exists, so re-ingesting doesn't add duplicates
-        animal = db.query(Animal).filter(Animal.name == sheet["animal"]).first()
-        if not animal:
-            animal = Animal(name=sheet["animal"])
-            db.add(animal)
-        animal.animal_class = sheet["animal_class"]
-        animal.file_name = sheet["file_name"]
-        animal.source_url = sheet["source_url"]
+    save_animals(db, fact_sheets)
+
     return IngestResponse(
         files=[sheet["file_name"] for sheet in fact_sheets],
         chunks=get_collection().count(),

@@ -8,6 +8,7 @@ import pytest
 os.environ["DATABASE_URL"] = "sqlite:///./test_wildwise.db"
 os.environ["CHROMA_PATH"] = "./test_chroma"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-that-is-at-least-32-characters-long"
+os.environ["AUTO_INGEST"] = "false"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
