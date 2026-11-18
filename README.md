@@ -11,7 +11,7 @@ A containerized full-stack RAG chatbot that answers common questions about wild 
 - Shows a confidence level (high, medium, low, or none) and the sources behind every answer
 - Filters questions by animal class
 - Skips the model for off-topic questions and says it doesn't know instead of guessing
-- Accounts with JWT login, and a saved history of each user's questions
+- Accounts with JWT login, password changes, and a saved history of each user's questions
 - Runs with one command using Docker Compose
 
 ## Tech Stack
@@ -170,6 +170,7 @@ The full interactive docs are at http://localhost:8000/docs. Endpoints marked wi
 | POST | `/auth/register` | | Create an account |
 | POST | `/auth/token` | | Log in and get a JWT |
 | GET | `/auth/me` | 🔒 | The logged-in user |
+| PUT | `/auth/me/password` | 🔒 | Change the user's password (needs the current one) |
 | POST | `/ingest` | 🔒 | Reload the fact sheets into ChromaDB and the database |
 | POST | `/ask` | 🔒 | Ask a question, and save it to the user's history |
 | GET | `/conversations` | 🔒 | The user's past questions, newest first |
@@ -184,7 +185,17 @@ pip install pytest httpx
 pytest
 ```
 
-The 8 tests check the welcome page, registering, login, that `/ask` needs a login, that off-topic questions skip the model, that answers are saved to history, that users can't delete each other's conversations, and the animal class detection.
+The 11 tests cover:
+
+| Area | Tests |
+|---|---|
+| Health | `GET /` and `GET /health` return 200 |
+| Auth | Register (201), a taken username (400), a wrong password (401), and `/ask` without a token (401). The logged-in tests register and log in first, then use the token on protected endpoints. |
+| Validation | A short password and an unknown animal class return 422 |
+| RAG | `/ask` returns an answer with its sources and confidence, and off-topic questions skip the model |
+| Create, read, update, delete | Asking creates a conversation, `/conversations` reads it back, and the user can delete it. Changing a password updates the user: a wrong current password gets 400, and afterward only the new password logs in. |
+| Privacy | Another user gets 404 trying to delete someone else's conversation |
+| Fact sheets | The animal class detection picks "worm" for "a worm, not an insect" |
 
 To check code style, run `ruff check .` from the project folder.
 
@@ -195,7 +206,7 @@ Every push to `main` and every pull request runs `.github/workflows/ci.yml` on G
 | Job | What it checks |
 |---|---|
 | lint | `ruff check .` finds no style or code problems |
-| test | All 8 pytest tests pass on a fresh copy of the repo |
+| test | All 11 pytest tests pass on a fresh copy of the repo |
 | docker | Both images build with `docker compose build` (it only runs if lint and test pass) |
 
 The **CI** badge at the top of this README shows the result of the latest run. It's green when everything passes and turns red if a push breaks something, so anyone visiting the repo can see the project is tested without running it. Click the badge to see the runs on the Actions tab.
@@ -324,6 +335,7 @@ Cases the app handles:
 | Missing, fake, or expired token | 401. An expired token in the app sends the user back to the login screen. |
 | A valid token for a deleted user | 401 |
 | Deleting another user's conversation | 404, as if it didn't exist |
+| Changing a password with the wrong current password | 400, so a stolen token alone can't change the password |
 | Ingesting twice | Chunks are upserted and animals are updated, so nothing is duplicated |
 | Backend down when logging in or registering | The app shows "Can't reach the Wild Wise server" instead of crashing |
 | Ollama down or the model not pulled | `/ask` returns 503, and the app shows "Wild Wise can't answer right now" |

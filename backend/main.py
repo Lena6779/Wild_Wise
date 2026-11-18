@@ -20,6 +20,8 @@ from schemas import (
     DeleteResponse,
     HealthResponse,
     IngestResponse,
+    MessageResponse,
+    PasswordUpdate,
     RootResponse,
     Source,
     StatsResponse,
@@ -129,6 +131,23 @@ def login(
 def read_me(current_user: User = Depends(get_current_user)):
     """Return the logged-in user."""
     return current_user
+
+
+@app.put("/auth/me/password", response_model=MessageResponse)
+def change_password(
+    passwords: PasswordUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    """Change the logged-in user's password."""
+    # Ask for the current password too, so a stolen token can't lock the user out
+    if not verify_password(passwords.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+    # current_user came from get_db's session, which saves the change at the end
+    current_user.hashed_password = hash_password(passwords.new_password)
+    return MessageResponse(message="Password updated.")
 
 
 @app.post("/ingest", response_model=IngestResponse)

@@ -19,6 +19,13 @@ Confidence = Literal[
 
 
 # --- Authentication Schemas: user creation, login, and the current user ---
+def check_bcrypt_length(password: str) -> str:
+    """Reject passwords over 72 bytes, bcrypt's limit (emoji use 4 bytes each)."""
+    if len(password.encode("utf-8")) > 72:
+        raise ValueError("Password is too long. Try fewer emoji or special characters.")
+    return password
+
+
 class UserCreate(BaseModel):
     """Request body for POST /auth/register."""
 
@@ -28,10 +35,21 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def password_fits_bcrypt(cls, password: str) -> str:
-        """Reject passwords over 72 bytes, bcrypt's limit (emoji use 4 bytes each)."""
-        if len(password.encode("utf-8")) > 72:
-            raise ValueError("Password is too long. Try fewer emoji or special characters.")
-        return password
+        """Check the password fits bcrypt's 72-byte limit."""
+        return check_bcrypt_length(password)
+
+
+class PasswordUpdate(BaseModel):
+    """Request body for PUT /auth/me/password."""
+
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_fits_bcrypt(cls, password: str) -> str:
+        """Check the new password fits bcrypt's 72-byte limit."""
+        return check_bcrypt_length(password)
 
 
 class UserOut(BaseModel):
@@ -94,7 +112,13 @@ class ConversationOut(BaseModel):
 
 
 class DeleteResponse(BaseModel):
-    """Response for DELETE /conversations."""
+    """Response for DELETE /conversations/{conversation_id}."""
+
+    message: str
+
+
+class MessageResponse(BaseModel):
+    """Response for PUT /auth/me/password."""
 
     message: str
 
