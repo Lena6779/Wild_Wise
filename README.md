@@ -320,16 +320,18 @@ What I learned:
 |---|---|---|
 | "What do alligators eat?" | Said alligators eat "even other alligators" and "can tolerate a bit of salt in their food" | The Diet paragraph doesn't mention eating other alligators. The salt detail comes from the Habitat paragraph (they can spend short periods in salty water around mangroves), not from their diet. |
 | "Where do they live?" (filter: bird) | Opened with "Those are some cool facts about wild animals!" and only described the great horned owl | The search also returned the emperor penguin, but the answer left it out. |
+| "What do penguins eat?" | Said "their favorite food is fish" (confidence: high) | The Diet paragraph only says emperor penguins are carnivores that catch their food in the sea, and never names fish. Fish is true in real life, but the model added it from its own knowledge, not from the fact sheet. |
 
 Why this happens:
 
 - Search returns the 3 closest chunks, and the model sometimes stitches facts from different chunks together, even from a different section like Habitat into Diet.
 - The model sometimes talks about the facts it was given ("Those are some cool facts...") instead of just answering, the same habit that caused "Based on the provided context..." in prompt version 1.
 - When the chunks are about more than one animal, it tends to pick one and skip the others.
+- When a fact sheet is vague, the model may fill the gap with what it already knows. The answer can be correct and still not come from Wild Wise's facts, which is a grounding slip.
 
 The confidence label is based on the search distance, not on the model's wording, so an answer can be labeled "high" and still contain a small mix-up. Each answer shows its sources so users can check the facts.
 
-Possible improvements: try adding "If the facts are about more than one animal, name each animal" to the prompt, or use a larger model such as `llama3.2:3b` if the computer can run it.
+Possible improvements: try adding "If the facts are about more than one animal, name each animal" to the prompt, or use a larger model such as `llama3.2:3b` if the computer can run it. Making the fact sheets more specific also helps, since a RAG answer can only be as specific as its documents. For example, naming what emperor penguins eat in their Diet paragraph would give the model the real answer instead of leaving a gap.
 
 ## Edge Cases
 
