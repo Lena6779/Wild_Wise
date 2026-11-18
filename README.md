@@ -188,6 +188,18 @@ The 8 tests check the welcome page, registering, login, that `/ask` needs a logi
 
 To check code style, run `ruff check .` from the project folder.
 
+### Continuous Integration (CI)
+
+Every push to `main` and every pull request runs `.github/workflows/ci.yml` on GitHub Actions. It has three jobs:
+
+| Job | What it checks |
+|---|---|
+| lint | `ruff check .` finds no style or code problems |
+| test | All 8 pytest tests pass on a fresh copy of the repo |
+| docker | Both images build with `docker compose build` (it only runs if lint and test pass) |
+
+The **CI** badge at the top of this README shows the result of the latest run. It's green when everything passes and turns red if a push breaks something, so anyone visiting the repo can see the project is tested without running it. Click the badge to see the runs on the Actions tab.
+
 ## Adding a New Animal
 
 1. Add a `.txt` file to `backend/docs`, named after the animal (for example, `bald_eagle.txt`).
