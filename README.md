@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/Lena6779/Wild_Wise/actions/workflows/ci.yml/badge.svg)
 
-A containerized full-stack RAG chatbot that answers common questions about wild animals, such as whether an animal is a mammal, gives live birth, hibernates, what it eats, and where it lives.
+Wild Wise is a containerized full-stack RAG chatbot that answers common questions about 24 wild animals, such as whether an animal is a mammal, how it's born, what it eats, where it lives, and whether it hibernates or migrates. It's made for all ages and answers in plain English, using only its own fact sheets, and every answer shows its sources and a confidence level. Users log in to ask questions, and each user's questions are saved to their history.
 
 ## Features
 
@@ -57,11 +57,12 @@ The sources include the National Park Service, National Geographic and National 
 
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) and [Git](https://git-scm.com)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose) and [Git](https://git-scm.com)
 - About 4 GB of free disk space for the images and the model
-- To run without Docker: Python 3.11 or newer (`auth.py` uses `datetime.UTC`) and [Ollama](https://ollama.com)
+- **Ollama:** with Docker, nothing to install, because Ollama runs in its own container. To run without Docker, install [Ollama](https://ollama.com) yourself.
+- **Python:** with Docker, nothing to install, because the images use Python 3.12. To run without Docker, use Python 3.11 or newer (`auth.py` uses `datetime.UTC`).
 
-## Running with Docker
+## Setup
 
 Wild Wise runs as three containers: Ollama (the language model), the FastAPI backend, and the Streamlit frontend.
 
@@ -78,6 +79,8 @@ Wild Wise runs as three containers: Ollama (the language model), the FastAPI bac
    ```bash
    docker compose up --build
    ```
+
+   `docker-compose up --build` (with a hyphen, the older command) works the same way.
 
 4. The first time only, download the model into the Ollama container from a second terminal:
 
@@ -141,6 +144,14 @@ The thresholds were chosen by testing: "What do alligators eat?" scored 0.24, a 
 
 ## Usage
 
+### Ingesting the fact sheets
+
+Ingesting reads the 24 fact sheets in `backend/docs`, splits each into 6 chunks, and stores the 144 chunks in ChromaDB, with the animals saved to the database.
+
+- **Automatically:** on the first start, when ChromaDB is empty, the backend ingests everything by itself. Nothing to do.
+- **By hand** (after editing or adding fact sheets): open http://localhost:8000/docs, click **Authorize** and log in, then run **POST /ingest**. The reply lists the files and the chunk count. Running it again doesn't create duplicates.
+- **Check it worked:** http://localhost:8000/health should show `"chunks": 144`, and http://localhost:8000/stats should show 24 animals.
+
 ### In the app
 
 1. Open http://localhost:8501 and create an account on the **Register** tab, or log in.
@@ -160,23 +171,23 @@ What the confidence levels mean:
 
 ### API endpoints
 
-The full interactive docs are at http://localhost:8000/docs. Endpoints marked with 🔒 need a login token, which the **Authorize** button on that page adds.
+The full interactive docs are at http://localhost:8000/docs. Endpoints that require auth need a login token, which the **Authorize** button on that page adds.
 
-| Method | Path | Login | What it does |
+| Method | Path | Description | Auth required |
 |---|---|---|---|
-| GET | `/` | | Welcome message and the model in use |
-| GET | `/health` | | Whether Ollama is reachable, and the chunk count |
-| GET | `/stats` | | Number of animals and chunks, and the animal names |
-| POST | `/auth/register` | | Create an account |
-| POST | `/auth/token` | | Log in and get a JWT |
-| GET | `/auth/me` | 🔒 | The logged-in user |
-| PUT | `/auth/me/password` | 🔒 | Change the user's password (needs the current one) |
-| POST | `/ingest` | 🔒 | Reload the fact sheets into ChromaDB and the database |
-| POST | `/ask` | 🔒 | Ask a question, and save it to the user's history |
-| GET | `/conversations` | 🔒 | The user's past questions, newest first |
-| DELETE | `/conversations/{conversation_id}` | 🔒 | Delete one of the user's conversations |
+| GET | `/` | Welcome message and the model in use | No |
+| GET | `/health` | Whether Ollama is reachable, and the chunk count | No |
+| GET | `/stats` | Number of animals and chunks, and the animal names | No |
+| POST | `/auth/register` | Create an account | No |
+| POST | `/auth/token` | Log in and get a JWT | No |
+| GET | `/auth/me` | The logged-in user | Yes |
+| PUT | `/auth/me/password` | Change the user's password (needs the current one) | Yes |
+| POST | `/ingest` | Reload the fact sheets into ChromaDB and the database | Yes |
+| POST | `/ask` | Ask a question, and save it to the user's history | Yes |
+| GET | `/conversations` | The user's past questions, newest first | Yes |
+| DELETE | `/conversations/{conversation_id}` | Delete one of the user's conversations | Yes |
 
-## Running Tests
+## Testing
 
 The tests use a separate test database and fake the search and model, so they don't need ChromaDB's embedding model or Ollama. From the `backend` folder:
 
