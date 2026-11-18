@@ -66,8 +66,8 @@ Wild Wise runs as three containers: Ollama (the language model), the FastAPI bac
 1. Clone the repository and go into its folder:
 
    ```bash
-   git clone https://github.com/Lena6779/wild-wise.git
-   cd wild-wise
+   git clone https://github.com/Lena6779/Wild_Wise.git
+   cd Wild_Wise
    ```
 
 2. Copy `.env.example` to `.env`, and set `JWT_SECRET_KEY` to a long random string.
@@ -200,7 +200,7 @@ To check code style, run `ruff check .` from the project folder.
 ## Project Structure
 
 ```
-wild-wise/
+Wild_Wise/
 ├── backend/
 │   ├── docs/              # The 24 animal fact sheets
 │   ├── tests/
