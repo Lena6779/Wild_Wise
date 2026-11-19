@@ -325,6 +325,28 @@ The confidence label is based on the search distance, not on the model's wording
 
 Possible improvements: try adding "If the facts are about more than one animal, name each animal" to the prompt, or use a larger model such as `llama3.2:3b` if the computer can run it. Making the fact sheets more specific also helps, since a RAG answer can only be as specific as its documents. For example, naming what emperor penguins eat in their Diet paragraph would give the model the real answer instead of leaving a gap.
 
+## What Wild Wise Gets Right
+
+Most answers match the fact sheets closely. These are real answers from the app, checked line by line against the fact sheets.
+
+**"Where do dragonflies live?"** (confidence: high, source: Dragonfly)
+
+> Dragonflies live in and around water. They need ponds, bogs, and other bodies of fresh water to lay their eggs and raise their young.
+
+| The answer said | The fact sheet says |
+|---|---|
+| "ponds, bogs, and other bodies of fresh water" | Habitat: "Dragonflies need fresh water such as ponds and bogs" |
+| "to lay their eggs" | Birth: "A female dragonfly lays her eggs in fresh water" |
+| "and raise their young" | Habitat: "because their nymphs grow up underwater" |
+
+Every detail comes from the Habitat and Birth paragraphs, and nothing was added. The model combined two chunks correctly.
+
+**"What is the capital of France?"** (confidence: none, no sources)
+
+> I'm sorry, I don't have an answer for that. Please try asking a different question.
+
+The closest chunk was far away (a distance of about 0.89), so Wild Wise skipped the model instead of guessing. It only answers what its fact sheets cover.
+
 ## Edge Cases
 
 Cases the app handles:
