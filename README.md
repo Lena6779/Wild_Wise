@@ -29,15 +29,7 @@ Wild Wise is a containerized full-stack RAG chatbot that answers common question
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    user([User]) --> frontend["Streamlit frontend<br/>port 8501"]
-    frontend -->|"HTTP + JWT"| backend["FastAPI backend<br/>port 8000"]
-    backend -->|"users, conversations, animals"| sqlite[("SQLite<br/>wildwise.db")]
-    backend -->|"search the fact sheet chunks"| chroma[("ChromaDB<br/>144 chunks")]
-    backend -->|"prompt with the matching chunks"| ollama["Ollama<br/>llama3.2:1b"]
-    docs[/"24 fact sheets<br/>backend/docs"/] -.->|"loaded at first start"| chroma
-```
+![Wild Wise architecture diagram](docs/Architecture_Diagram.png)
 
 How a question is answered:
 
